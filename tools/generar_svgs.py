@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Genera los SVG del README del perfil con la misma paleta neón del portafolio.
 
-    pip install fonttools brotli
+    pip install fonttools brotli      (Python 3.8 o más nuevo)
     python3 tools/generar_svgs.py
 
 Las fuentes (Tektur, Archivo y JetBrains Mono) se bajan de Google Fonts la primera vez
@@ -9,8 +9,13 @@ y se guardan en tools/.fuentes/. Cada SVG lleva incrustado solo el subconjunto d
 que usa, porque GitHub muestra los SVG como imágenes y no deja cargar fuentes externas.
 
 Los dibujos de los proyectos vienen de tools/dibujos.json, exportados del portafolio
-(flkochu.github.io), así el perfil y la página usan exactamente los mismos planos.
-Los textos que cambian seguido están en las constantes de abajo.
+(flkochu.github.io), así el perfil y la página usan exactamente los mismos planos: cada
+clave ALL-xx guarda el viewBox y el contenido del <svg class="dw"> de su tarjeta, y "hero"
+los grupos del dibujo grande. Si cambia un dibujo en el portafolio, abre la página en el
+navegador y copia ese SVG al JSON. tools/proton-render.jpg es una captura de proton/
+(1100 × 649) con la pose "Alcance al frente".
+Los textos que cambian seguido están en las constantes de abajo. La salida es
+reproducible: correrlo dos veces deja los mismos archivos.
 """
 import base64, html, io, json, math, re, urllib.request
 from pathlib import Path
@@ -105,7 +110,7 @@ def font_css(keys, text):
     css = ""
     for key in sorted(keys):
         fam, wt, name = FACES[key]
-        f = TTFont(font_path(key))
+        f = TTFont(font_path(key), recalcTimestamp=False)
         o = subset.Options()
         o.flavor = "woff2"
         o.layout_features = ["kern", "liga", "calt", "ccmp", "locl", "mark", "mkmk"]
@@ -258,7 +263,8 @@ def banner():
     b += f'<circle cx="{x0 + 17}" cy="73" r="4.5" fill="{MINT}"/><circle class="ping" cx="{x0 + 17}" cy="73" r="4.5" fill="none" stroke="{MINT}"/>'
     b += T(x0 + 32, 78, EYEBROW, "eb")
     # nombre
-    b += f'<g filter="url(#blur)" opacity=".45">{T(x0, 172, NAME[0], "nm", extra=f' style="fill:{VIOLET}"')}{T(x0, 252, NAME[1], "nm", extra=f' style="fill:{VIOLET}"')}</g>'
+    halo = f' style="fill:{VIOLET}"'
+    b += f'<g filter="url(#blur)" opacity=".45">{T(x0, 172, NAME[0], "nm", extra=halo)}{T(x0, 252, NAME[1], "nm", extra=halo)}</g>'
     b += T(x0, 172, NAME[0], "nm")
     w2 = tw(NAME[1], "TK6", 80, -.01)
     b += f'<linearGradient id="ng" x1="{x0}" x2="{x0 + w2:.0f}" y1="0" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{CYAN}"/><stop offset=".55" stop-color="{VIOLET}"/><stop offset="1" stop-color="{MAGENTA}"/></linearGradient>'
@@ -307,9 +313,9 @@ def terminal():
 
     def prompt(cmd):
         nonlocal t, y
-        px = X + CW * len("adan@ibero:~$  ")
+        px = X + CW * len("adan@ibero:~$ ")
         s = (f'<g class="ln" style="animation-delay:{t:.2f}s"><text x="{X}" y="{y}"><tspan class="u">adan</tspan><tspan class="h">@ibero</tspan>'
-             f'<tspan class="mu">:~$</tspan><tspan class="cmd">  {esc(cmd)}</tspan></text>')
+             f'<tspan class="mu">:~$</tspan><tspan class="cmd"> {esc(cmd)}</tspan></text>')
         if cmd:
             dur = .045 * len(cmd) + .1
             k, dx = f"ty{len(keys)}", CW * len(cmd)
@@ -341,14 +347,14 @@ def terminal():
     for r in range(2):
         out("".join(f'<text class="node" x="{X + c * 370}" y="{y}">{esc(nodes[r * 3 + c])}</text>' for c in range(3)))
     prompt("cat logros.log")
-    out(f'<text x="{X}" y="{y}"><tspan class="ok">✓</tspan><tspan class="yl"> First Prize</tspan><tspan class="cmd"> · Huawei ICT Competition 2025–2026 · con PROTÓN y mi equipo</tspan></text>')
-    out(f'<text x="{X}" y="{y}"><tspan class="ok">✓</tspan><tspan class="cmd"> Paper de Plague Bot VR aceptado en COMRob</tspan></text>')
+    out(f'<text x="{X}" y="{y}"><tspan class="ok">◆</tspan><tspan class="yl"> First Prize</tspan><tspan class="cmd"> · Huawei ICT Competition 2025–2026 · con PROTÓN y mi equipo</tspan></text>')
+    out(f'<text x="{X}" y="{y}"><tspan class="ok">◆</tspan><tspan class="cmd"> Paper de Plague Bot VR aceptado en COMRob</tspan></text>')
     prompt("cat mision.log")
     out(f'<text x="{X}" y="{y}"><tspan class="ar">›</tspan><tspan class="cmd"> Diseñar y construir robots completos: del cálculo y el CAD al firmware y ROS 2.</tspan></text>')
     out(f'<text x="{X}" y="{y}"><tspan class="ar">›</tspan><tspan class="cmd"> Documentar cada proyecto y compartir lo que aprendo.</tspan></text>')
     last_y = y
     prompt("")
-    px = X + CW * len("adan@ibero:~$  ")
+    px = X + CW * len("adan@ibero:~$ ")
     rows.append(f'<g class="ln" style="animation-delay:{t:.2f}s"><rect class="cur blink" x="{px:.1f}" y="{last_y - 17}" width="11" height="21"/></g>')
     H = last_y + 34
     defs = (f'<linearGradient id="bd" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="{CYAN}"/><stop offset=".5" stop-color="{VIOLET}"/><stop offset="1" stop-color="{MAGENTA}"/></linearGradient>')
@@ -372,17 +378,20 @@ def terminal():
 
 # ---------- encabezados de sección ----------
 def header(name, no, title, note, nc):
-    W, H = 1200, 100
-    b = T(4, 24, no, "no") + f'<rect x="40" y="18.5" width="44" height="1.5" fill="url(#kl)"/>'
-    b += T(2, 70, title, "h")
-    b += f'<rect x="4" y="84" width="64" height="2.5" fill="url(#neon)" filter="url(#glow-s)"/>'
+    W, H = 1200, 108
+    gdef, bg = sheet_bg(W, H, CYAN, 0, 54, 520, "hg")
+    b = bg + f'<rect x=".75" y=".75" width="{W - 1.5}" height="{H - 1.5}" fill="none" stroke="{RULE}" stroke-width="1.5"/>'
+    b += f'<rect x="0" y="0" width="3" height="{H}" fill="url(#neon-v)" filter="url(#glow-s)"/>'
+    b += T(30, 34, no, "no") + f'<rect x="66" y="28.5" width="44" height="1.5" fill="url(#kl)"/>'
+    b += T(28, 78, title, "h")
+    b += f'<rect x="30" y="91" width="64" height="2.5" fill="url(#neon)" filter="url(#glow-s)"/>'
     nw = tw(note, "TK5", 13, .16)
-    b += f'<rect x="{W - 4 - nw - 30:.1f}" y="64" width="16" height="2" fill="{nc}" filter="url(#glow-s)"/>'
-    b += T(W - 4, 70, note, "r", "end")
-    b += f'<line x1="80" y1="85.5" x2="{W - 4}" y2="85.5" stroke="{RULE}"/>'
-    defs = f'<linearGradient id="kl" x1="0" x2="1"><stop offset="0" stop-color="{CYAN}"/><stop offset="1" stop-color="{CYAN}" stop-opacity="0"/></linearGradient>'
+    b += f'<rect x="{W - 30 - nw - 30:.1f}" y="72" width="16" height="2" fill="{nc}" filter="url(#glow-s)"/>'
+    b += T(W - 30, 78, note, "r", "end")
+    defs = gdef + (f'<linearGradient id="kl" x1="0" x2="1"><stop offset="0" stop-color="{CYAN}"/><stop offset="1" stop-color="{CYAN}" stop-opacity="0"/></linearGradient>'
+                   f'<linearGradient id="neon-v" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="{CYAN}"/><stop offset=".55" stop-color="{VIOLET}"/><stop offset="1" stop-color="{MAGENTA}"/></linearGradient>')
     css = (f".no{{font-family:TK,Arial,sans-serif;font-weight:600;font-size:15px;letter-spacing:.22em;fill:{CYAN};filter:url(#glow-s)}}"
-           f".h{{font-family:TK,Arial,sans-serif;font-weight:600;font-size:38px;letter-spacing:-.005em;fill:{INK}}}"
+           f".h{{font-family:TK,Arial,sans-serif;font-weight:600;font-size:36px;letter-spacing:-.005em;fill:{INK}}}"
            f".r{{font-family:TK,Arial,sans-serif;font-weight:500;font-size:13px;letter-spacing:.16em;fill:{INK2}}}")
     write(f"{name}.svg", doc(W, H, title, css, b, {"TK5", "TK6"}, defs))
 
@@ -451,10 +460,11 @@ def guide(i, fname, pid, title, sub):
 
 # ---------- PROTÓN en 3D ----------
 def proton():
-    W, H = 1200, 790
     img = base64.b64encode((TOOLS / "proton-render.jpg").read_bytes()).decode()
-    ix, iy, iw = 24, 64, 1152
-    ih = round(iw * 649 / 1100)
+    W, ix, iy, iw = 1200, 24, 64, 1152
+    ih = round(iw * 649 / 1100)  # proton-render.jpg mide 1100 × 649
+    fy = iy + ih + 38
+    H = fy + 26
 
     def P(x, y):  # de la captura original (1238 × 820, recortada 30 px arriba) al marco
         return ix + x * 1100 / 1238 * iw / 1100, iy + (y - 30) * 1100 / 1238 * iw / 1100
@@ -467,10 +477,10 @@ def proton():
     b += f'<rect x="{ix}" y="{iy}" width="{iw}" height="{ih}" fill="none" stroke="{RULE}"/>'
     b += corners(ix, iy, iw, ih, CYAN, 18, 10)
     # llamadas como en un plano
-    calls = [((640, 250), (905, 120), "Brazo de 6 GDL", "piezas CAD reales", MAGENTA, "start"),
-             ((343, 268), (130, 120), "Cámara RealSense", "campo de visión", CYAN, "start"),
-             ((885, 395), (975, 330), "Chasis de aluminio", "manejable con WASD", VIOLET, "start")]
-    for i, ((ax, ay), (lx, ly), t1, t2, c, an) in enumerate(calls):
+    calls = [((640, 250), (905, 120), "Brazo de 6 GDL", "piezas CAD reales", MAGENTA),
+             ((343, 268), (130, 120), "Cámara RealSense", "campo de visión", CYAN),
+             ((885, 395), (975, 330), "Chasis de aluminio", "manejable con WASD", VIOLET)]
+    for i, ((ax, ay), (lx, ly), t1, t2, c) in enumerate(calls):
         (px, py), (qx, qy) = P(ax, ay), P(lx, ly)
         b += f'<g class="co" style="animation-delay:{.4 + i * .35:.2f}s">'
         w = max(tw(t1, "TK6", 17), tw(t2, "AR4", 14)) + 22
@@ -480,7 +490,6 @@ def proton():
         b += f'<rect x="{qx:.1f}" y="{qy - 18:.1f}" width="{w:.1f}" height="50" fill="{rgba(SHEET, .82)}" stroke="{rgba(c, .6)}"/>'
         b += T(qx + 11, qy + 3, t1, "c1") + T(qx + 11, qy + 23, t2, "c2", extra=f' fill="{c}"')
         b += "</g>"
-    fy = iy + ih + 38
     b += T(28, fy, "Brazo con las piezas CAD reales · chasis manejable · ROS 2 Jazzy + MoveIt2", "ft")
     b += T(W - 44, fy, "Abrir la simulación", "go", "end", extra=f' fill="{CYAN}"') + chevron(W - 36, fy - 5, CYAN)
     css = (f".pid{{font-family:TK,Arial,sans-serif;font-weight:600;font-size:16px;letter-spacing:.08em}}"
@@ -492,7 +501,6 @@ def proton():
            f".go{{font-family:TK,Arial,sans-serif;font-weight:500;font-size:17px;letter-spacing:.04em}}"
            ".co{animation:co .5s ease-out both}@keyframes co{from{opacity:0;transform:translateY(6px)}}"
            + PING + REDUCED)
-    H = fy + 26
     write("proton-3d.svg", doc(W, H, "PROTÓN en 3D: brazo de 6 GDL con las piezas CAD reales sobre el chasis de aluminio", css, b,
                                {"TK5", "TK6", "AR4"}, gdef))
 
